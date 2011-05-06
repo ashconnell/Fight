@@ -215,6 +215,9 @@ public class Fight extends JavaPlugin {
 						fightUsersTeam.remove(player.getName());
 						fightUsersClass.remove(player.getName());
 						cleanSigns(player.getName());
+						player.getInventory().clear();
+						clearArmorSlots(player);
+						player.teleport(getCoords("spectator"));
 					}
 					else {
 						player.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "You are not in a team.");
