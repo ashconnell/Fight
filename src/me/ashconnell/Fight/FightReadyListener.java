@@ -49,28 +49,6 @@ public class FightReadyListener extends PlayerListener {
 				}
 				
 			}
-			/*if (block.getTypeId() == 42 && plugin.fightUsersClass.containsKey(player.getName())){
-				if(!plugin.fightUsersReady.containsKey(player.getName())){
-					
-					player.sendMessage(ChatColor.RED + "[Fight] " + ChatColor.WHITE + "You are ready! The fight will begin when everyone else is ready.");
-					plugin.fightUsersReady.put(player.getName(), "yes");
-					
-					if(plugin.fightUsersTeam.size() == plugin.fightUsersReady.size()){
-						if(plugin.fightUsersClass.size() == plugin.fightUsersReady.size()){
-							
-							// Tell everyone fight will begin
-							Set<String> set = plugin.fightUsersTeam.keySet();
-							Iterator<String> iter = set.iterator();
-							while(iter.hasNext()){
-								Object o = iter.next();
-								Player z = plugin.getServer().getPlayer(o.toString());
-								z.sendMessage(ChatColor.RED + "[Fight] " + ChatColor.WHITE + "Everyone is ready. Fight will begin in 10 seconds.");
-							}
-							plugin.giveItems(player);
-						}
-					}
-				}
-			}*/
 			
 			// Player forgot to pick a class
 			else if (block.getTypeId() == 42 && plugin.fightUsersTeam.containsKey(player.getName())){
