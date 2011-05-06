@@ -69,6 +69,13 @@ public class Fight extends JavaPlugin {
 		Configuration config = new Configuration(configFile);
 		config.load();
 		List<String> classes;
+		if(config.getKeys("classes") == null){
+			config.setProperty("classes.Ranger.items", "261,262:64,298,299,300,301");
+			config.setProperty("classes.Swordsman.items", "276,306,307,308,309");
+			config.setProperty("classes.Tank.items", "272,310,311,312,313");
+			config.setProperty("classes.Pyro.items", "259,46:2,298,299,300,301");
+			config.save();
+		}
 		classes = config.getKeys("classes");
 		log.info("[Fight] Loaded " + classes.size() + " Classes.");
 		
