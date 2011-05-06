@@ -1,0 +1,10 @@
+name: Fight
+main: me.ashconnell.Fight.Fight
+version: 1.00
+commands:
+  Fight:
+    description: Base command for Fight plugin. Admins should read the helpfile on bukkit forums
+    usage: |
+           /Fight - Join the fight
+           /Fight Watch - Watch the fight
+           /Fight Leave - Leave the fight
