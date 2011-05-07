@@ -58,7 +58,7 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.ENTITY_DEATH, deathListener, Event.Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_DROP_ITEM, dropListener, Event.Priority.Highest, this);
 		
-		log.info("[Fight] Plugin Started. (version 1.0)");
+		log.info("[Fight] Plugin Started. (version 1.0.2)");
 		
 		// Create Config if Non-Existant
 		new File("plugins/Fight").mkdir();
