@@ -45,22 +45,30 @@ public class FightDeathListener extends EntityListener {
 				
 				// Check if fight has finished
 				if((plugin.redTeam > 0 && plugin.blueTeam == 0) || (plugin.redTeam == 0 && plugin.blueTeam > 0)){
+					
+					// If Only Red Team Is Alive
 					if(plugin.redTeam > 0 && plugin.blueTeam == 0){
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){
 							Object o = iter.next();
 							Player z = plugin.getServer().getPlayer(o.toString());
+							z.getInventory().clear();
+							plugin.clearArmorSlots(z);
 							z.teleport(plugin.getCoords("spectator"));
 						}
 						plugin.tellEveryone(ChatColor.RED + "Red Team are the Champions!");
 					}
+					
+					// If Only Blue Team Is Alive
 					else if(plugin.redTeam == 0 && plugin.blueTeam > 0){
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){
 							Object o = iter.next();
 							Player z = plugin.getServer().getPlayer(o.toString());
+							z.getInventory().clear();
+							plugin.clearArmorSlots(z);
 							z.teleport(plugin.getCoords("spectator"));
 						}
 						plugin.tellEveryone(ChatColor.BLUE + "Blue Team are the Champions!");

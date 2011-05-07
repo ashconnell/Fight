@@ -34,6 +34,7 @@ public class Fight extends JavaPlugin {
 	private final FightReadyListener readyListener = new FightReadyListener(this);
 	private final FightRespawnListener respawnListener = new FightRespawnListener(this);
 	private final FightDeathListener deathListener = new FightDeathListener(this);
+	private final FightDropListener dropListener = new FightDropListener(this);
 	
     public final Map<String, String> fightUsersTeam = new HashMap<String, String>();
     public final Map<String, String> fightUsersClass = new HashMap<String, String>();
@@ -55,6 +56,7 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, readyListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.PLAYER_RESPAWN, respawnListener, Event.Priority.Highest, this);
 		pm.registerEvent(Event.Type.ENTITY_DEATH, deathListener, Event.Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_DROP_ITEM, dropListener, Event.Priority.Highest, this);
 		
 		log.info("[Fight] Plugin Started. (version 1.0)");
 		
@@ -285,12 +287,17 @@ public class Fight extends JavaPlugin {
 		File configFile = new File("plugins/Fight/config.yml");
 		Configuration config = new Configuration(configFile);
 		config.load();
-		List<String> list = config.getKeys("coords");
-		if(list.size() == 5){
-			return true;
-		}
-		else {
+		if(config.getKeys("coords") == null){
 			return false;
+		}
+		else{
+			List<String> list = config.getKeys("coords");
+			if(list.size() == 5){
+				return true;
+			}
+			else {
+				return false;
+			}
 		}
 	}
 	
