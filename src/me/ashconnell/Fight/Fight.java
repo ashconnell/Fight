@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+
 import org.bukkit.ChatColor;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
@@ -21,30 +22,40 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.Location;
+import org.bukkit.plugin.Plugin;
+
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
-import org.bukkit.plugin.Plugin;
+import com.iConomy.*;
+import com.iConomy.system.Holdings;
 
 public class Fight extends JavaPlugin {
 	
-	private static final Logger log = Logger.getLogger("Minecraft");
+	public static final Logger log = Logger.getLogger("Minecraft");
 	public static PermissionHandler permissionHandler;
+	public iConomy iConomy = null;
 	
 	private final FightSignListener signListener = new FightSignListener(this);
 	private final FightReadyListener readyListener = new FightReadyListener(this);
 	private final FightRespawnListener respawnListener = new FightRespawnListener(this);
 	private final FightDeathListener deathListener = new FightDeathListener(this);
 	private final FightDropListener dropListener = new FightDropListener(this);
+	private final FightServerListener serverListener = new FightServerListener(this);
 	
     public final Map<String, String> fightUsersTeam = new HashMap<String, String>();
     public final Map<String, String> fightUsersClass = new HashMap<String, String>();
     public final Map<String, String> fightClasses = new HashMap<String, String>();
     public final Map<String, Sign> fightSigns = new HashMap<String, Sign>();
+    public final Map<String, String> fightUsersRespawn = new HashMap<String, String>();
     
     int redTeam = 0;
+    boolean redTeamIronClicked = false;
     int blueTeam = 0;
-    
+    boolean blueTeamIronClicked = false;    
     boolean fightInProgress = false;
+    
+    int rewardAmount;
+    String rewardItems;
     
 	public void onEnable() {
 		
@@ -57,8 +68,11 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_RESPAWN, respawnListener, Event.Priority.Highest, this);
 		pm.registerEvent(Event.Type.ENTITY_DEATH, deathListener, Event.Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_DROP_ITEM, dropListener, Event.Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener, Event.Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Event.Priority.Monitor, this);
 		
-		log.info("[Fight] Plugin Started. (version 1.0.2)");
+		
+		log.info("[Fight] Plugin Started. (version 1.1.0)");
 		
 		// Create Config if Non-Existant
 		new File("plugins/Fight").mkdir();
@@ -71,11 +85,14 @@ public class Fight extends JavaPlugin {
 		Configuration config = new Configuration(configFile);
 		config.load();
 		List<String> classes;
+		// Set up default config file if it does not exist
 		if(config.getKeys("classes") == null){
 			config.setProperty("classes.Ranger.items", "261,262:64,298,299,300,301");
 			config.setProperty("classes.Swordsman.items", "276,306,307,308,309");
 			config.setProperty("classes.Tank.items", "272,310,311,312,313");
 			config.setProperty("classes.Pyro.items", "259,46:2,298,299,300,301");
+			config.setProperty("rewards.amount", "0");
+			config.setProperty("rewards.items", "");
 			config.save();
 		}
 		classes = config.getKeys("classes");
@@ -86,6 +103,10 @@ public class Fight extends JavaPlugin {
 			String className = classes.get(i);
 			fightClasses.put(className, config.getString("classes." + className + ".items", null));
 		}
+		
+		// Load Rewards
+		rewardAmount = config.getInt("rewards.amount", 0);
+		rewardItems = config.getString("rewards.items", "none");
 	}
 
 	public void onDisable() {
@@ -103,27 +124,8 @@ public class Fight extends JavaPlugin {
 			// Command: /Fight
 			if(args.length < 1 && this.isSetup() && !fightInProgress && hasPermissions(player, "user")){
 				
-				// Check For Empty Inventory
-				ItemStack[] invContents = player.getInventory().getContents();
-				ItemStack[] armContents = player.getInventory().getArmorContents();
-				boolean emptyInventory = false;
-				int invNullCounter = 0;
-				int armNullCounter = 0;
-				for(int i=0; i < invContents.length; i++){
-					if(invContents[i]==null){
-						invNullCounter++;
-					}
-				}
-				for(int i=0; i < armContents.length; i++){
-					if(armContents[i].getType()==Material.AIR){
-						armNullCounter++;
-					}
-				}
-				if(invNullCounter == invContents.length && armNullCounter == armContents.length){
-					emptyInventory = true;
-				}
-				
-				if(emptyInventory == true){
+				// Check For Empty Inventory				
+				if(emptyInventory(player) == true){
 
 					// Add New Users To Map
 					if(!this.fightUsersTeam.containsKey(player.getName())){
@@ -134,26 +136,39 @@ public class Fight extends JavaPlugin {
 					if(fightUsersTeam.get(player.getName()) == "none"){
 						if(blueTeam > redTeam){
 							fightUsersTeam.put(player.getName(), "red");
-							sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Welcome! You are on team " + ChatColor.RED + "<Red>");
+							tellPlayer(player, "Welcome! You are on team " + ChatColor.RED + "<Red>");
 							redTeam++;
 							player.teleport(getCoords("redlounge"));
 						}
 						else {
 							fightUsersTeam.put(player.getName(), "blue");
 							blueTeam++;
-							sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Welcome! You are on team " + ChatColor.BLUE + "<Blue>");
+							tellPlayer(player, "Welcome! You are on team " + ChatColor.BLUE + "<Blue>");
 							player.teleport(getCoords("bluelounge"));
 						}
 					}
 					
-					// If In Team, Teleport To Lounge
+					// If Already In Team, Teleport To Lounge
 					else {
 						String team = fightUsersTeam.get(player.getName());
 						player.teleport(getCoords(team + "lounge"));
 					}	
 				}
 				else {
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "You must have an empty inventory to join a Fight!");
+					if(fightUsersTeam.containsKey(player.getName())){
+						tellPlayer(player, "You have already joined a team!");
+					} else {
+						tellPlayer(player, "You must have an empty inventory to join a Fight!");
+					}
+				}
+			}
+			// Errors thrown
+			else if(args.length < 1){
+				if(!this.isSetup()){
+					tellPlayer(player, "Plugin is not set up properly.");
+				}
+				if(fightInProgress){
+					tellPlayer(player, "A Fight is already in progress");
 				}
 			}
 			
@@ -163,31 +178,31 @@ public class Fight extends JavaPlugin {
 				// Command: /Fight RedLounge
 				if(fightCmd[0].equalsIgnoreCase("redlounge") && hasPermissions(player, "admin")){
 					setCoords(player, "redlounge");
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Red Lounge Set.");
+					tellPlayer(player, "Red Lounge Set.");
 				}
 				
 				// Command: /Fight RedSpawn
 				else if(fightCmd[0].equalsIgnoreCase("redspawn") && hasPermissions(player, "admin")){
 					setCoords(player, "redspawn");
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Red Spawn Set.");
+					tellPlayer(player, "Red Spawn Set.");
 				}
 				
 				// Command: /Fight BlueLounge
 				else if(fightCmd[0].equalsIgnoreCase("bluelounge") && hasPermissions(player, "admin")){
 					setCoords(player, "bluelounge");
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Blue Lounge Set.");
+					tellPlayer(player, "Blue Lounge Set.");
 				}
 				
 				// Command: /Fight BlueSpawn
 				else if(fightCmd[0].equalsIgnoreCase("bluespawn") && hasPermissions(player, "admin")){
 					setCoords(player, "bluespawn");
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Blue Spawn Set.");
+					tellPlayer(player, "Blue Spawn Set.");
 				}
 				
 				// Command: /Fight Spectator
 				else if(fightCmd[0].equalsIgnoreCase("spectator") && hasPermissions(player, "admin")){
 					setCoords(player, "spectator");
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Spectator Area Set.");
+					tellPlayer(player, "Spectator Area Set.");
 				}
 				
 				// Command: /Fight Watch
@@ -195,7 +210,7 @@ public class Fight extends JavaPlugin {
 					
 					// Teleport To Spectator Area
 					player.teleport(getCoords("spectator"));
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Welcome to the spectator's area!");
+					tellPlayer(player, "Welcome to the spectator's area!");
 					if(fightUsersTeam.containsKey(player.getName())){
 						if(fightUsersTeam.get(player.getName()) == "red"){
 							redTeam = redTeam - 1;
@@ -208,6 +223,8 @@ public class Fight extends JavaPlugin {
 						fightUsersTeam.remove(player.getName());
 						fightUsersClass.remove(player.getName());
 						cleanSigns(player.getName());
+						player.getInventory().clear();
+						clearArmorSlots(player);
 					}
 				}
 				
@@ -220,7 +237,7 @@ public class Fight extends JavaPlugin {
 						if(fightUsersTeam.get(player.getName()) == "blue"){
 							blueTeam = blueTeam - 1;
 						}
-						player.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "You have left the fight.");
+						tellPlayer(player, "You have left the fight.");
 						fightUsersTeam.remove(player.getName());
 						fightUsersClass.remove(player.getName());
 						cleanSigns(player.getName());
@@ -229,24 +246,24 @@ public class Fight extends JavaPlugin {
 						player.teleport(getCoords("spectator"));
 					}
 					else {
-						player.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "You are not in a team.");
+						tellPlayer(player, "You are not in a team.");
 					}
 				}
 				
 				// Invalid Command
 				else {
-					sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Invalid Command. (503)");
+					tellPlayer(player, "Invalid Command. (503)");
 				}
 			}
 			
 			// Waypoints have not been setup
 			else if(!this.isSetup()){
-				sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "All Waypoints must be set up first.");
+				tellPlayer(player, "All Waypoints must be set up first.");
 			}
 			
 			// Command: /Fight <argument> <argument> cont...
 			if(args.length > 1){
-				sender.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + "Invalid Command. (504)");
+				tellPlayer(player, "Invalid Command. (504)");
 			}
 			return true;
 		}
@@ -403,11 +420,17 @@ public class Fight extends JavaPlugin {
 			}
 		}		
 		if(members == membersReady && members > 0){
-			return true;
+			if(color == "red"){
+				return true;
+			}
+			if(color =="blue"){
+				return true;
+			}
 		}
 		else{
 			return false;
 		}
+		return false;
 	}
 	
 	// Tell All Fight Players
@@ -417,7 +440,7 @@ public class Fight extends JavaPlugin {
 		while(iter.hasNext()){
 			Object o = iter.next();
 			Player z = getServer().getPlayer(o.toString());
-			z.sendMessage(ChatColor.YELLOW + "[Fight] " + msg);
+			z.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + msg);
 		}
 	}
 	
@@ -433,6 +456,11 @@ public class Fight extends JavaPlugin {
 				z.sendMessage(ChatColor.YELLOW + "[Fight] " + msg);
 			}
 		}
+	}
+	
+	// Tell Fight User 
+	public void tellPlayer(Player player, String msg){
+		player.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + msg);
 	}
 	
 	// Teleport All Fight Players To Spawn
@@ -452,10 +480,66 @@ public class Fight extends JavaPlugin {
 		}
 	}
 	
+	// Clear All Armor Slots
 	public void clearArmorSlots(Player player){
 		player.getInventory().setHelmet(null);
 		player.getInventory().setBoots(null);
 		player.getInventory().setChestplate(null);
 		player.getInventory().setLeggings(null);
+	}
+	
+	// Checks to see if player has no items and armor
+	public boolean emptyInventory(Player player){
+		ItemStack[] invContents = player.getInventory().getContents();
+		ItemStack[] armContents = player.getInventory().getArmorContents();
+		int invNullCounter = 0;
+		int armNullCounter = 0;
+		for(int i=0; i < invContents.length; i++){
+			if(invContents[i]==null){
+				invNullCounter++;
+			}
+		}
+		for(int i=0; i < armContents.length; i++){
+			if(armContents[i].getType()==Material.AIR){
+				armNullCounter++;
+			}
+		}
+		if(invNullCounter == invContents.length && armNullCounter == armContents.length){
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	// Give player iConomy and Item rewards
+	public void giveRewards(Player player) {
+		if (rewardAmount <= 0){
+			return;
+		}
+		if (iConomy != null) {
+			Holdings balance = com.iConomy.iConomy.getAccount(player.getName()).getHoldings();
+			balance.add(rewardAmount);
+			tellPlayer(player, "You have been awarded " + com.iConomy.iConomy.format(rewardAmount));
+		}
+		if(rewardItems != "none"){
+			String[] items;
+			items = rewardItems.split(",");
+			for(int i=0; i < items.length; i++){
+				String item = items[i];
+				String[] itemDetail = item.split(":");
+				if(itemDetail.length == 2){
+					int x = Integer.parseInt(itemDetail[0]);
+					int y = Integer.parseInt(itemDetail[1]);
+					ItemStack stack = new ItemStack (x, y);
+					player.getInventory().setItem(i, stack);
+				}
+				else{
+					int x = Integer.parseInt(itemDetail[0]);
+					ItemStack stack = new ItemStack (x, 1);
+					player.getInventory().setItem(i, stack);
+				}
+			}
+		}
 	}
 }

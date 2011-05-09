@@ -19,14 +19,11 @@ public class FightRespawnListener extends PlayerListener {
 		Player player = event.getPlayer();
 		
 		// If they are part of the fight team		
-		if (plugin.fightUsersTeam.containsKey(player.getName()) && plugin.fightInProgress){
+		if (plugin.fightUsersRespawn.containsKey(player.getName())){
 			
-			// Respawn them at the spectator waypoint
+			// Respawn them at the spectator Waypoint
 			Location l = plugin.getCoords("spectator");
 			event.setRespawnLocation(l);			
 		}
-		// Remove player from team
-		plugin.fightUsersTeam.remove(player.getName());
-		plugin.fightUsersClass.remove(player.getName());
 	}
 }

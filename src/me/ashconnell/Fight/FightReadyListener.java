@@ -29,22 +29,26 @@ public class FightReadyListener extends PlayerListener {
 				
 				// Tell your team they are ready
 				String color = plugin.fightUsersTeam.get(player.getName());
+				
 				if(color == "red"){
+					plugin.redTeamIronClicked = true;
 					plugin.tellEveryone(ChatColor.RED + "Red " + ChatColor.WHITE + "team is ready!");
-					
 					// If both teams ready teleport everyone to the spawns
-					if(plugin.teamReady("blue")){
+					if(plugin.teamReady("blue") && plugin.blueTeamIronClicked){
 						plugin.teleportAllToSpawn();
 						plugin.fightInProgress = true;
+						plugin.tellEveryone("Let the Fight begin!");
 					}
 				}
+				
 				else if(color == "blue"){
+					plugin.blueTeamIronClicked = true;
 					plugin.tellEveryone(ChatColor.BLUE + "Blue " + ChatColor.WHITE + "team is ready!");
-					
 					// If both teams ready teleport everyone to the spawns
-					if(plugin.teamReady("red")){
+					if(plugin.teamReady("red") && plugin.redTeamIronClicked){
 						plugin.teleportAllToSpawn();
 						plugin.fightInProgress = true;
+						plugin.tellEveryone("Let the Fight begin!");
 					}
 				}
 				

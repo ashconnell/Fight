@@ -25,6 +25,7 @@ public class FightSignListener extends PlayerListener {
 		if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
 			Block block = event.getClickedBlock();
 			Player player = event.getPlayer();
+			
 			if (block.getState() instanceof Sign){
 				Sign sign = (Sign) block.getState();
 				plugin.fightSigns.put(player.getName(), sign);

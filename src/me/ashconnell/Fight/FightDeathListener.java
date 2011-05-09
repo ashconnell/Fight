@@ -22,32 +22,34 @@ public class FightDeathListener extends EntityListener {
 	public void onEntityDeath(EntityDeathEvent event) {
 		Entity e = event.getEntity();
 		if(e instanceof Player) {
-			Player player = (Player)e;			
+			Player player = (Player)e;
+			event.getDrops().clear();
 			
 			// Report player death to everyone
 			if(plugin.fightUsersTeam.containsKey(player.getName())){
 				if(plugin.fightUsersTeam.get(player.getName()) == "red"){
 					plugin.tellEveryone(ChatColor.RED + player.getName() + ChatColor.WHITE + " has been killed!");
+					plugin.redTeam = plugin.redTeam - 1;
 				}
 				else {
 					plugin.tellEveryone(ChatColor.BLUE + player.getName() + ChatColor.WHITE + " has been killed!");
-				}
-				
-				// Adjust Team Count
-				if(plugin.fightUsersTeam.containsKey(player.getName())){
-					if(plugin.fightUsersTeam.get(player.getName()) == "red"){
-						plugin.redTeam = plugin.redTeam - 1;
-					}
-					if(plugin.fightUsersTeam.get(player.getName()) == "blue"){
-						plugin.blueTeam = plugin.blueTeam - 1;
-					}
+					plugin.blueTeam = plugin.blueTeam - 1;
 				}
 				
 				// Check if fight has finished
 				if((plugin.redTeam > 0 && plugin.blueTeam == 0) || (plugin.redTeam == 0 && plugin.blueTeam > 0)){
 					
 					// If Only Red Team Is Alive
-					if(plugin.redTeam > 0 && plugin.blueTeam == 0){
+					if(plugin.redTeam > 0 && plugin.blueTeam == 0 && plugin.fightUsersTeam.get(player.getName()) == "blue"){
+						plugin.tellEveryone(ChatColor.RED + "Red Team are the Champions!");
+						
+						//Remove dead player from team
+						plugin.clearArmorSlots(player);
+						player.getInventory().clear();
+						plugin.fightUsersRespawn.put(player.getName(), "true");
+						plugin.fightUsersTeam.remove(player.getName());
+						plugin.fightUsersClass.remove(player.getName());
+						
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){
@@ -56,12 +58,21 @@ public class FightDeathListener extends EntityListener {
 							z.getInventory().clear();
 							plugin.clearArmorSlots(z);
 							z.teleport(plugin.getCoords("spectator"));
+							plugin.giveRewards(z);
 						}
-						plugin.tellEveryone(ChatColor.RED + "Red Team are the Champions!");
 					}
 					
 					// If Only Blue Team Is Alive
-					else if(plugin.redTeam == 0 && plugin.blueTeam > 0){
+					else if(plugin.redTeam == 0 && plugin.blueTeam > 0 && plugin.fightUsersTeam.get(player.getName()) == "red"){
+						plugin.tellEveryone(ChatColor.BLUE + "Blue Team are the Champions!");
+						
+						//Remove dead player from team
+						plugin.clearArmorSlots(player);
+						player.getInventory().clear();
+						plugin.fightUsersRespawn.put(player.getName(), "true");
+						plugin.fightUsersTeam.remove(player.getName());
+						plugin.fightUsersClass.remove(player.getName());
+						
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){
@@ -70,10 +81,15 @@ public class FightDeathListener extends EntityListener {
 							z.getInventory().clear();
 							plugin.clearArmorSlots(z);
 							z.teleport(plugin.getCoords("spectator"));
+							plugin.giveRewards(z);
 						}
-						plugin.tellEveryone(ChatColor.BLUE + "Blue Team are the Champions!");
+						
 					}
+					
+					// Reset everything
 					plugin.fightInProgress = false;
+					plugin.redTeamIronClicked = false;
+					plugin.blueTeamIronClicked = false;
 					plugin.fightUsersTeam.clear();
 					plugin.fightUsersClass.clear();
 					plugin.cleanSigns();
