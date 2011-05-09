@@ -74,7 +74,7 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Event.Priority.Monitor, this);
 		
 		
-		log.info("[Fight] Plugin Started. (version 1.1.1)");
+		log.info("[Fight] Plugin Started. (version 1.1.2)");
 		
 		// Create Config if Non-Existant
 		new File("plugins/Fight").mkdir();
@@ -93,8 +93,8 @@ public class Fight extends JavaPlugin {
 			config.setProperty("classes.Swordsman.items", "276,306,307,308,309");
 			config.setProperty("classes.Tank.items", "272,310,311,312,313");
 			config.setProperty("classes.Pyro.items", "259,46:2,298,299,300,301");
-			config.setProperty("rewards.amount", "0");
-			config.setProperty("rewards.items", "");
+			config.setProperty("rewards.amount", 0);
+			config.setProperty("rewards.items", "none");
 			config.save();
 		}
 		classes = config.getKeys("classes");
