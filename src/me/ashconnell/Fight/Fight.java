@@ -49,9 +49,11 @@ public class Fight extends JavaPlugin {
     public final Map<String, String> fightUsersRespawn = new HashMap<String, String>();
     
     int redTeam = 0;
-    boolean redTeamIronClicked = false;
     int blueTeam = 0;
+    
+    boolean redTeamIronClicked = false;
     boolean blueTeamIronClicked = false;    
+    
     boolean fightInProgress = false;
     
     int rewardAmount;
@@ -72,7 +74,7 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Event.Priority.Monitor, this);
 		
 		
-		log.info("[Fight] Plugin Started. (version 1.1.0)");
+		log.info("[Fight] Plugin Started. (version 1.1.1)");
 		
 		// Create Config if Non-Existant
 		new File("plugins/Fight").mkdir();
@@ -154,6 +156,8 @@ public class Fight extends JavaPlugin {
 						player.teleport(getCoords(team + "lounge"));
 					}	
 				}
+				
+				// Errors
 				else {
 					if(fightUsersTeam.containsKey(player.getName())){
 						tellPlayer(player, "You have already joined a team!");
@@ -162,10 +166,10 @@ public class Fight extends JavaPlugin {
 					}
 				}
 			}
-			// Errors thrown
+			// Errors
 			else if(args.length < 1){
 				if(!this.isSetup()){
-					tellPlayer(player, "Plugin is not set up properly.");
+					tellPlayer(player, "All Waypoints must be set up first.");
 				}
 				if(fightInProgress){
 					tellPlayer(player, "A Fight is already in progress");
@@ -203,6 +207,12 @@ public class Fight extends JavaPlugin {
 				else if(fightCmd[0].equalsIgnoreCase("spectator") && hasPermissions(player, "admin")){
 					setCoords(player, "spectator");
 					tellPlayer(player, "Spectator Area Set.");
+				}
+				
+				// Command: /Fight Exit
+				else if(fightCmd[0].equalsIgnoreCase("exit") && hasPermissions(player, "admin")){
+					setCoords(player, "exit");
+					tellPlayer(player, "Exit Area Set.");
 				}
 				
 				// Command: /Fight Watch
@@ -243,7 +253,7 @@ public class Fight extends JavaPlugin {
 						cleanSigns(player.getName());
 						player.getInventory().clear();
 						clearArmorSlots(player);
-						player.teleport(getCoords("spectator"));
+						player.teleport(getCoords("exit"));
 					}
 					else {
 						tellPlayer(player, "You are not in a team.");
@@ -254,11 +264,6 @@ public class Fight extends JavaPlugin {
 				else {
 					tellPlayer(player, "Invalid Command. (503)");
 				}
-			}
-			
-			// Waypoints have not been setup
-			else if(!this.isSetup()){
-				tellPlayer(player, "All Waypoints must be set up first.");
 			}
 			
 			// Command: /Fight <argument> <argument> cont...
@@ -309,7 +314,7 @@ public class Fight extends JavaPlugin {
 		}
 		else{
 			List<String> list = config.getKeys("coords");
-			if(list.size() == 5){
+			if(list.size() == 6){
 				return true;
 			}
 			else {

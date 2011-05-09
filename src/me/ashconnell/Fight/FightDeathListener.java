@@ -51,6 +51,7 @@ public class FightDeathListener extends EntityListener {
 						plugin.fightUsersTeam.remove(player.getName());
 						plugin.fightUsersClass.remove(player.getName());
 						
+						// Teleport winners out of the Fight
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){
@@ -74,6 +75,7 @@ public class FightDeathListener extends EntityListener {
 						plugin.fightUsersTeam.remove(player.getName());
 						plugin.fightUsersClass.remove(player.getName());
 						
+						// Teleport winners out of the Fight
 						Set<String> set = plugin.fightUsersTeam.keySet();
 						Iterator<String> iter = set.iterator();
 						while(iter.hasNext()){

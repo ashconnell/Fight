@@ -28,7 +28,7 @@ public class FightServerListener extends ServerListener {
 			if (iConomy != null) {
 				if (iConomy.isEnabled()) {
 					plugin.iConomy = (iConomy) iConomy;
-					Fight.log.info("[Fight] Hooked into iConomy!");
+					Fight.log.info("[Fight] hooked into iConomy");
 				}
 			}
 		}
