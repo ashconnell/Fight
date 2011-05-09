@@ -23,10 +23,11 @@ public class FightDeathListener extends EntityListener {
 		Entity e = event.getEntity();
 		if(e instanceof Player) {
 			Player player = (Player)e;
-			event.getDrops().clear();
 			
 			// Report player death to everyone
 			if(plugin.fightUsersTeam.containsKey(player.getName())){
+				event.getDrops().clear();
+				
 				if(plugin.fightUsersTeam.get(player.getName()) == "red"){
 					plugin.tellEveryone(ChatColor.RED + player.getName() + ChatColor.WHITE + " has been killed!");
 					plugin.redTeam = plugin.redTeam - 1;
