@@ -24,7 +24,7 @@ public class FightRespawnListener extends PlayerListener {
 			// Respawn them at the spectator Waypoint
 			Location l = plugin.getCoords("spectator");
 			event.setRespawnLocation(l);
-			plugin.fightUsersRespawn.clear();
+			plugin.fightUsersRespawn.remove(player.getName());
 		}
 	}
 }

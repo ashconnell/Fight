@@ -90,16 +90,15 @@ public class FightDeathListener extends EntityListener {
 					}
 					
 					// Reset everything
+					plugin.cleanSigns();
 					plugin.fightInProgress = false;
 					plugin.redTeamIronClicked = false;
 					plugin.blueTeamIronClicked = false;
 					plugin.fightUsersTeam.clear();
 					plugin.fightUsersClass.clear();
-					plugin.cleanSigns();
-					plugin.fightSigns.clear();
 					plugin.redTeam = 0;
 					plugin.blueTeam = 0;
-					
+					plugin.fightSigns.clear();
 				}
 			}
 		}

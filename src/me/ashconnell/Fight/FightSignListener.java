@@ -28,10 +28,11 @@ public class FightSignListener extends PlayerListener {
 			
 			if (block.getState() instanceof Sign){
 				Sign sign = (Sign) block.getState();
-				plugin.fightSigns.put(player.getName(), sign);
 				
 				// If top line matches a class
 				if(plugin.fightClasses.containsKey(sign.getLine(0)) && plugin.fightUsersTeam.containsKey(player.getName())){
+					
+					plugin.fightSigns.put(player.getName(), sign);
 					
 					// If they already picked a class
 					if(plugin.fightUsersClass.containsKey(player.getName())){
