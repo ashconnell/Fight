@@ -59,7 +59,7 @@ public class FightDeathListener extends EntityListener {
 							Player z = plugin.getServer().getPlayer(o.toString());
 							z.getInventory().clear();
 							plugin.clearArmorSlots(z);
-							z.teleport(plugin.getCoords("spectator"));
+							plugin.goToWaypoint(z, "spectator");
 							plugin.giveRewards(z);
 						}
 					}
@@ -83,7 +83,7 @@ public class FightDeathListener extends EntityListener {
 							Player z = plugin.getServer().getPlayer(o.toString());
 							z.getInventory().clear();
 							plugin.clearArmorSlots(z);
-							z.teleport(plugin.getCoords("spectator"));
+							plugin.goToWaypoint(z, "spectator");
 							plugin.giveRewards(z);
 						}
 						

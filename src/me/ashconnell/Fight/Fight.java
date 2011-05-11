@@ -41,21 +41,25 @@ public class Fight extends JavaPlugin {
 	private final FightDeathListener deathListener = new FightDeathListener(this);
 	private final FightDropListener dropListener = new FightDropListener(this);
 	private final FightServerListener serverListener = new FightServerListener(this);
+	private final FightDisconnectListener disconnectListener = new FightDisconnectListener(this);
+	private final FightTeleportListener teleportListener = new FightTeleportListener(this);
 	
     public final Map<String, String> fightUsersTeam = new HashMap<String, String>();
     public final Map<String, String> fightUsersClass = new HashMap<String, String>();
     public final Map<String, String> fightClasses = new HashMap<String, String>();
     public final Map<String, Sign> fightSigns = new HashMap<String, Sign>();
     public final Map<String, String> fightUsersRespawn = new HashMap<String, String>();
+    public final Map<String, String> fightTelePass = new HashMap<String, String>();
     
     int redTeam = 0;
     int blueTeam = 0;
     
     boolean redTeamIronClicked = false;
     boolean blueTeamIronClicked = false;    
-    
+ 
     boolean fightInProgress = false;
     
+    int entryFee;
     int rewardAmount;
     String rewardItems;
     
@@ -72,9 +76,11 @@ public class Fight extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_DROP_ITEM, dropListener, Event.Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Event.Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_QUIT, disconnectListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.PLAYER_TELEPORT, teleportListener, Event.Priority.Highest, this);
 		
 		
-		log.info("[Fight] Plugin Started. (version 1.1.2)");
+		log.info("[Fight] Plugin Started. (version 1.1.3)");
 		
 		// Create Config if Non-Existant
 		new File("plugins/Fight").mkdir();
@@ -93,12 +99,16 @@ public class Fight extends JavaPlugin {
 			config.setProperty("classes.Swordsman.items", "276,306,307,308,309");
 			config.setProperty("classes.Tank.items", "272,310,311,312,313");
 			config.setProperty("classes.Pyro.items", "259,46:2,298,299,300,301");
+			config.save();
+		}
+		if(config.getKeys("rewards") == null){
+			config.load();
+			config.setProperty("rewards.entry-fee", 0);
 			config.setProperty("rewards.amount", 0);
 			config.setProperty("rewards.items", "none");
 			config.save();
 		}
 		classes = config.getKeys("classes");
-		log.info("[Fight] Loaded " + classes.size() + " Classes.");
 		
 		// Load Classes
 		for(int i=0; i < classes.size(); i++){
@@ -107,12 +117,12 @@ public class Fight extends JavaPlugin {
 		}
 		
 		// Load Rewards
+		entryFee = config.getInt("rewards.entry-fee", 0);
 		rewardAmount = config.getInt("rewards.amount", 0);
 		rewardItems = config.getString("rewards.items", "none");
 	}
 
 	public void onDisable() {
-		log.info("[Fight] Plugin Stopped.");
 		cleanSigns();
 	}
 	
@@ -128,32 +138,33 @@ public class Fight extends JavaPlugin {
 				
 				// Check For Empty Inventory				
 				if(emptyInventory(player) == true){
+					
+					if (iConomy != null && entryFee > 0) {
+						Holdings balance = com.iConomy.iConomy.getAccount(player.getName()).getHoldings();
+						balance.subtract(entryFee);
+					}
 
 					// Add New Users To Map
 					if(!this.fightUsersTeam.containsKey(player.getName())){
-						this.fightUsersTeam.put(player.getName(), "none");
-					}
-					
-					// Pick Team and Teleport To Lounge
-					if(fightUsersTeam.get(player.getName()) == "none"){
 						if(blueTeam > redTeam){
+							goToWaypoint(player, "redlounge");
 							fightUsersTeam.put(player.getName(), "red");
 							tellPlayer(player, "Welcome! You are on team " + ChatColor.RED + "<Red>");
+							tellEveryoneExcept(player, player.getName() + " has joined team " + ChatColor.RED + "<Red>");
 							redTeam++;
-							player.teleport(getCoords("redlounge"));
 						}
 						else {
+							goToWaypoint(player, "bluelounge");
 							fightUsersTeam.put(player.getName(), "blue");
 							blueTeam++;
 							tellPlayer(player, "Welcome! You are on team " + ChatColor.BLUE + "<Blue>");
-							player.teleport(getCoords("bluelounge"));
+							tellEveryoneExcept(player, player.getName() + " has joined team " + ChatColor.BLUE + "<Blue>");
 						}
 					}
 					
 					// If Already In Team, Teleport To Lounge
 					else {
-						String team = fightUsersTeam.get(player.getName());
-						player.teleport(getCoords(team + "lounge"));
+						tellPlayer(player, "You have already joined a team!");
 					}	
 				}
 				
@@ -219,16 +230,16 @@ public class Fight extends JavaPlugin {
 				else if(fightCmd[0].equalsIgnoreCase("watch") && this.isSetup() && hasPermissions(player, "user")){
 					
 					// Teleport To Spectator Area
-					player.teleport(getCoords("spectator"));
+					goToWaypoint(player, "spectator");
 					tellPlayer(player, "Welcome to the spectator's area!");
 					if(fightUsersTeam.containsKey(player.getName())){
 						if(fightUsersTeam.get(player.getName()) == "red"){
 							redTeam = redTeam - 1;
-							log.info("red:" + redTeam + " blue:" + blueTeam);
+							tellEveryoneExcept(player, ChatColor.RED + player.getName() + ChatColor.WHITE + " has left the Fight");
 						}
 						if(fightUsersTeam.get(player.getName()) == "blue"){
 							blueTeam = blueTeam - 1;
-							log.info("red:" + redTeam + " blue:" + blueTeam);
+							tellEveryoneExcept(player, ChatColor.BLUE + player.getName() + ChatColor.WHITE + " has left the Fight");
 						}
 						fightUsersTeam.remove(player.getName());
 						fightUsersClass.remove(player.getName());
@@ -243,17 +254,19 @@ public class Fight extends JavaPlugin {
 					if(fightUsersTeam.containsKey(player.getName())){
 						if(fightUsersTeam.get(player.getName()) == "red"){
 							redTeam = redTeam - 1;
+							tellEveryoneExcept(player, ChatColor.RED + player.getName() + ChatColor.WHITE + " has left the Fight");
 						}
 						if(fightUsersTeam.get(player.getName()) == "blue"){
 							blueTeam = blueTeam - 1;
+							tellEveryoneExcept(player, ChatColor.BLUE + player.getName() + ChatColor.WHITE + " has left the Fight");
 						}
-						tellPlayer(player, "You have left the fight.");
+						tellPlayer(player, "You have left the Fight.");
 						fightUsersTeam.remove(player.getName());
 						fightUsersClass.remove(player.getName());
 						cleanSigns(player.getName());
 						player.getInventory().clear();
 						clearArmorSlots(player);
-						player.teleport(getCoords("exit"));
+						goToWaypoint(player, "exit");
 					}
 					else {
 						tellPlayer(player, "You are not in a team.");
@@ -449,6 +462,19 @@ public class Fight extends JavaPlugin {
 		}
 	}
 	
+	// Tell All Fight Players Except A Player
+	public void tellEveryoneExcept(Player player, String msg){
+		Set<String> set = fightUsersTeam.keySet();
+		Iterator<String> iter = set.iterator();
+		while(iter.hasNext()){
+			Object o = iter.next();
+			Player z = getServer().getPlayer(o.toString());
+			if(player.getName() != z.getName()){
+				z.sendMessage(ChatColor.YELLOW + "[Fight] " + ChatColor.WHITE + msg);
+			}
+		}
+	}
+	
 	
 	// Tell Fight Team Mates
 	public void tellTeam(String color, String msg){
@@ -476,11 +502,11 @@ public class Fight extends JavaPlugin {
 			Object o = iter.next();
 			if(fightUsersTeam.get(o.toString()) == "red"){
 				Player z = getServer().getPlayer(o.toString());
-				z.teleport(getCoords("redspawn"));
+				goToWaypoint(z, "redspawn");
 			}
 			if(fightUsersTeam.get(o.toString()) == "blue"){
 				Player z = getServer().getPlayer(o.toString());
-				z.teleport(getCoords("bluespawn"));
+				goToWaypoint(z, "bluespawn");
 			}
 		}
 	}
@@ -546,5 +572,11 @@ public class Fight extends JavaPlugin {
 				}
 			}
 		}
+	}
+	
+	public void goToWaypoint(Player player, String place){
+		fightTelePass.put(player.getName(), "yes");
+		player.teleport(getCoords(place));
+		fightTelePass.remove(player.getName());
 	}
 }
